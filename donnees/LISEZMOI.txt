@@ -1,0 +1,39 @@
+Données du TP Parc national des Pyrénées, séance 2 (Folium) de l'UE902-1 Webmapping
+Toutes les couches en GeoJSON, EPSG:4326 (longitude, latitude).
+
+  pnp_coeur.geojson             1 entités   0.48 Mo
+  pnp_aire_adhesion.geojson     1 entités   0.84 Mo
+  pnp_secteurs.geojson          6 entités   0.70 Mo
+  pnp_lacs.geojson            180 entités   1.04 Mo
+  pnp_sentiers.geojson        169 entités   0.26 Mo
+  pnp_refuges.geojson          22 entités   0.00 Mo
+  pnp_maisons.geojson           9 entités   0.00 Mo
+
+Champs
+  pnp_coeur, pnp_aire_adhesion  nom
+  pnp_secteurs                  code, nom
+  pnp_lacs                      nom (toponyme ; 5 lacs sans nom), nature, altitude_m
+                                (altitude du plan d'eau, en mètres, de 387
+                                à 2843 m), surface_ha
+  pnp_sentiers                  code (identifiant d'origine) ; écarté(s), moins de
+                                1 m de long : CA08
+  pnp_refuges                   nom, type (gardé, non gardé, chalet), proprietaire
+  pnp_maisons                   nom (maisons du parc, accueil du public)
+
+Sources et mentions de crédit
+  Cœur, aire d'adhésion : DREAL Nouvelle-Aquitaine, WFS SIGENA, couche n_enp_pn_s_r75,
+    validation du 2024-09-15. Licence Ouverte 2.0.
+  Secteurs : DREAL Nouvelle-Aquitaine, WFS SIGENA, couche l_pnp_secteurs_s_r75.
+    Licence Ouverte 2.0.
+  Lacs : IGN, BD TOPO, édition 2026-09-15, couche BDTOPO_V3:plan_d_eau du WFS de la
+    Géoplateforme. Plans d'eau de nature Lac, Retenue, Retenue-barrage,
+    d'au moins 5000 m², qui touchent le cœur ou l'aire d'adhésion.
+    Licence Ouverte 2.0.
+  Altitude des lacs : IGN, RGE ALTI, lue par le service d'altimétrie de la
+    Géoplateforme (ressource ign_rge_alti_wld) au point intérieur de chaque lac, arrondie au
+    mètre : l'altitude du plan d'eau au moment du levé, qui varie sur une retenue. La BD TOPO
+    ne renseigne pas l'altitude de ces plans d'eau. Licence Ouverte 2.0.
+    Mention de crédit : IGN, BD TOPO ; altitude : IGN, RGE ALTI.
+  Sentiers, refuges, maisons du parc : Parc national des Pyrénées. Données ouvertes du Parc.
+
+Fonds et services à citer s'ils sont affichés : IGN (Plan IGN, BD ORTHO, BD Forêt).
