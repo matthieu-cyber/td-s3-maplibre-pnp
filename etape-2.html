@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Parc national des Pyrénées</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.css">
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; }
+    #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; } /* la carte occupe toute la fenêtre */
+  </style>
+</head>
+<body>
+  <!-- Ouvrir par le serveur de TD (python3 serveur.py 5000), jamais d'un double clic : en file://, -->
+  <!-- Chromium refuse de démarrer le worker, et tout navigateur de lire les données -->
+  <div id="map"></div>
+
+  <script type="module">
+    // MapLibre en module, version épinglée : une nouvelle version ne change pas la page
+    import * as maplibregl from "https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.mjs";
+
+    // Le code de la carte s'écrit ici, étape par étape. Une ligne ajoutée porte « // Étape N »,
+    // une ligne modifiée « // Étape N : modifié ».
+
+    // Étape 1 : création de la carte sur le fond Plan IGN, cadrée sur le parc
+    const map = new maplibregl.Map({
+      container: "map",
+      style: "https://data.geopf.fr/annexes/ressources/vectorTiles/styles/PLAN.IGN/standard.json",
+      attributionControl: { customAttribution: "Plan IGN © IGN" },
+    });
+
+    // Cadrage sur l'emprise du parc (longitude puis latitude)
+    map.fitBounds([[-0.697, 42.673], [0.367, 43.178]], { animate: false });
+
+    // Ajout des boutons de zoom/boussole et de l'échelle
+    map.addControl(new maplibregl.NavigationControl(), "top-left");
+    map.addControl(new maplibregl.ScaleControl(), "bottom-left");
+
+    // Pour pouvoir inspecter la carte dans la console
+    window.map = map;
+
+    // Étape 2 : modification de deux couches du style Plan IGN après chargement
+    map.on("load", () => {
+      // Bleu plus soutenu pour les surfaces en eau
+      map.setPaintProperty("hydro surfacique", "fill-color", "#6baed6");
+      // Masquage des forêts fermées du fond (avec la faute d'orthographe « boiséee » du style)
+      map.setLayoutProperty("ocs - vegetation - zone boiséee, foret fermee, peupleraie", "visibility", "none");
+    });
+  </script>
+</body>
+</html>

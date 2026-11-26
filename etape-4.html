@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Parc national des Pyrénées</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.css">
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; }
+    #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; } /* la carte occupe toute la fenêtre */
+  </style>
+</head>
+<body>
+  <!-- Ouvrir par le serveur de TD (python3 serveur.py 5000), jamais d'un double clic : en file://, -->
+  <!-- Chromium refuse de démarrer le worker, et tout navigateur de lire les données -->
+  <div id="map"></div>
+
+  <script type="module">
+    // MapLibre en module, version épinglée : une nouvelle version ne change pas la page
+    import * as maplibregl from "https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.mjs";
+
+    // Le code de la carte s'écrit ici, étape par étape. Une ligne ajoutée porte « // Étape N »,
+    // une ligne modifiée « // Étape N : modifié ».
+
+    // Étape 1 : création de la carte sur le fond Plan IGN, cadrée sur le parc
+    const map = new maplibregl.Map({
+      container: "map",
+      style: "https://data.geopf.fr/annexes/ressources/vectorTiles/styles/PLAN.IGN/standard.json",
+      attributionControl: { customAttribution: "Plan IGN © IGN" },
+    });
+
+    // Cadrage sur l'emprise du parc (longitude puis latitude)
+    map.fitBounds([[-0.697, 42.673], [0.367, 43.178]], { animate: false });
+
+    // Ajout des boutons de zoom/boussole et de l'échelle
+    map.addControl(new maplibregl.NavigationControl(), "top-left");
+    map.addControl(new maplibregl.ScaleControl(), "bottom-left");
+
+    // Pour pouvoir inspecter la carte dans la console
+    window.map = map;
+
+    // Étape 2 : modification de deux couches du style Plan IGN après chargement
+    map.on("load", () => {
+      // Bleu plus soutenu pour les surfaces en eau
+      map.setPaintProperty("hydro surfacique", "fill-color", "#6baed6");
+      // Masquage des forêts fermées du fond (avec la faute d'orthographe « boiséee » du style)
+      map.setLayoutProperty("ocs - vegetation - zone boiséee, foret fermee, peupleraie", "visibility", "none");
+    });
+
+    // Étape 3 : chargement des six premières couches GeoJSON du parc
+    const creditDreal = "Cœur, aire d'adhésion et secteurs : DREAL Nouvelle-Aquitaine";
+    const creditPnp = "Sentiers, refuges, maisons du parc : Parc national des Pyrénées";
+
+    async function lireGeojson(fichier) {
+      const reponse = await fetch("donnees/" + fichier);
+      return await reponse.json();
+    }
+
+    map.on("load", async () => {
+      // On cherche la plus basse des couches d'écritures (symbol) en haut du style
+      const couchesDuStyle = map.getStyle().layers;
+      let ecritures;
+      for (let i = couchesDuStyle.length - 1; i >= 0; i--) {
+        if (couchesDuStyle[i].type !== "symbol") break;
+        ecritures = couchesDuStyle[i].id;
+      }
+
+      // Cœur du parc
+      map.addSource("coeur", {
+        type: "geojson",
+        data: await lireGeojson("pnp_coeur.geojson"),
+        attribution: creditDreal,
+      });
+      map.addLayer({
+        id: "coeur",
+        type: "fill",
+        source: "coeur",
+        paint: {
+          "fill-color": "#41ab5d",
+          "fill-opacity": 0.25,
+          "fill-outline-color": "#006d2c",
+        },
+      }, ecritures);
+
+      // Secteurs (contour fin seulement, intérieur transparent)
+      map.addSource("secteurs", {
+        type: "geojson",
+        data: await lireGeojson("pnp_secteurs.geojson"),
+        attribution: creditDreal,
+      });
+      map.addLayer({
+        id: "secteurs",
+        type: "fill",
+        source: "secteurs",
+        paint: {
+          "fill-color": "rgba(0, 0, 0, 0)",
+          "fill-outline-color": "#525252",
+        },
+      }, ecritures);
+
+      // Aire d'adhésion (contour en tiretés)
+      map.addSource("aire", {
+        type: "geojson",
+        data: await lireGeojson("pnp_aire_adhesion.geojson"),
+        attribution: creditDreal,
+      });
+      map.addLayer({
+        id: "aire",
+        type: "line",
+        source: "aire",
+        paint: {
+          "line-color": "#41ab5d",
+          "line-width": 2,
+          "line-dasharray": [3, 2],
+        },
+      }, ecritures);
+
+      // Lacs
+      map.addSource("lacs", {
+        type: "geojson",
+        data: await lireGeojson("pnp_lacs.geojson"),
+        attribution: "Lacs : IGN, BD TOPO ; altitude : IGN, RGE ALTI",
+      });
+      map.addLayer({
+        id: "lacs",
+        type: "fill",
+        source: "lacs",
+        paint: {
+          // Étape 4 : modifié - 4 classes de bleu selon l'altitude
+          "fill-color": [
+            "step", ["get", "altitude_m"],
+            "#bdd7e7",
+            2100, "#6baed6",
+            2250, "#3182bd",
+            2350, "#08519c"
+          ],
+          "fill-opacity": 0.9,
+          "fill-outline-color": "#08306b",
+        },
+      }, ecritures);
+
+      // Sentiers (au-dessus des aplats, mais toujours sous les écritures)
+      map.addSource("sentiers", {
+        type: "geojson",
+        data: await lireGeojson("pnp_sentiers.geojson"),
+        attribution: creditPnp,
+      });
+      map.addLayer({
+        id: "sentiers",
+        type: "line",
+        source: "sentiers",
+        paint: {
+          "line-color": "#a50f15",
+          // Étape 4 : modifié - épaisseur qui grandit avec le zoom
+          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 1, 14, 3],
+          "line-dasharray": [2.5, 2],
+        },
+      }, ecritures);
+
+      // Refuges (tout en haut de la pile, au-dessus des écritures)
+      map.addSource("refuges", {
+        type: "geojson",
+        data: await lireGeojson("pnp_refuges.geojson"),
+        attribution: creditPnp,
+      });
+      map.addLayer({
+        id: "refuges",
+        type: "circle",
+        source: "refuges",
+        paint: {
+          "circle-radius": 6,
+          // Étape 4 : modifié - couleur selon le type de refuge
+          "circle-color": [
+            "match", ["get", "type"],
+            "gardé", "#d94801",
+            "non gardé", "#ffffff",
+            "chalet", "#fdae6b",
+            "#808080"
+          ],
+          "circle-stroke-color": "#7f2704",
+          "circle-stroke-width": 2,
+        },
+      });
+
+      // Étape 4 : ajout des maisons du parc avec leur pictogramme
+      const pictogramme = await map.loadImage("icones/maison.png");
+      map.addImage("maison", pictogramme.data, { pixelRatio: 2 });
+      map.addSource("maisons", {
+        type: "geojson",
+        data: await lireGeojson("pnp_maisons.geojson"),
+        attribution: creditPnp,
+      });
+      map.addLayer({
+        id: "maisons",
+        type: "symbol",
+        source: "maisons",
+        layout: {
+          "icon-image": "maison",
+          "icon-allow-overlap": true,
+        },
+      });
+    });
+  </script>
+</body>
+</html>
